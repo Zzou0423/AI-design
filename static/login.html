@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - AI Survey Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>AI Survey Assistant</h1>
+            <p>智能问卷生成与分析工具</p>
+        </header>
+        
+        <main class="main-content">
+            <div class="auth-container">
+                <div class="auth-tabs">
+                    <button class="tab-btn active" data-tab="login">登录</button>
+                    <button class="tab-btn" data-tab="register">注册</button>
+                </div>
+                
+                <!-- 登录表单 -->
+                <div class="auth-form" id="loginForm">
+                    <h2>登录</h2>
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" id="loginUsername" class="form-input" placeholder="请输入用户名">
+                    </div>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" id="loginPassword" class="form-input" placeholder="请输入密码">
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox" id="rememberMe" checked style="margin: 0;">
+                            保持登录状态（7天）
+                        </label>
+                    </div>
+                    <button id="loginBtn" class="btn-primary btn-lg">登录</button>
+                </div>
+                
+                <!-- 注册表单 -->
+                <div class="auth-form" id="registerForm" style="display: none;">
+                    <h2>注册新账户</h2>
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" id="registerUsername" class="form-input" placeholder="3-20个字符">
+                    </div>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" id="registerPassword" class="form-input" placeholder="至少6位">
+                    </div>
+                    <div class="form-group">
+                        <label>邮箱（可选）</label>
+                        <input type="email" id="registerEmail" class="form-input" placeholder="your@email.com">
+                    </div>
+                    <button id="registerBtn" class="btn-primary btn-lg">注册</button>
+                </div>
+                
+                <div id="authMessage" class="auth-message" style="display: none;"></div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // 切换登录/注册表单
+        const tabs = document.querySelectorAll('.tab-btn');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                tabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                if (this.dataset.tab === 'login') {
+                    loginForm.style.display = 'block';
+                    registerForm.style.display = 'none';
+                } else {
+                    loginForm.style.display = 'none';
+                    registerForm.style.display = 'block';
+                }
+                
+                document.getElementById('authMessage').style.display = 'none';
+            });
+        });
+        
+        // 登录
+        document.getElementById('loginBtn').addEventListener('click', async function() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            if (!username || !password) {
+                showMessage('请输入用户名和密码', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 默认保存会话信息到localStorage（保持登录状态）
+                    localStorage.setItem('session_id', data.session_id);
+                    localStorage.setItem('username', data.username);
+                    
+                    // 跳转到工作空间
+                    window.location.href = '/workspace';
+                } else {
+                    showMessage('登录失败: ' + (data.message || data.detail), 'error');
+                }
+            } catch (error) {
+                console.error('登录错误:', error);
+                let errorMessage = '网络错误';
+                try {
+                    if (error.response) {
+                        const errorData = await error.response.json();
+                        errorMessage = errorData.message || errorData.detail || '未知错误';
+                    }
+                } catch (e) {
+                    errorMessage = error.message || '网络错误';
+                }
+                showMessage('登录失败: ' + errorMessage, 'error');
+            }
+        });
+        
+        // 注册
+        document.getElementById('registerBtn').addEventListener('click', async function() {
+            const username = document.getElementById('registerUsername').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const email = document.getElementById('registerEmail').value.trim();
+            
+            if (!username || !password) {
+                showMessage('请输入用户名和密码', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, email: email || null })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('注册成功！请登录', 'success');
+                    // 延迟切换到登录页，让用户看到成功消息
+                    setTimeout(() => {
+                        tabs[0].click();
+                    }, 1500);
+                } else {
+                    showMessage('注册失败: ' + (data.message || data.detail), 'error');
+                }
+            } catch (error) {
+                console.error('注册错误:', error);
+                let errorMessage = '网络错误';
+                try {
+                    if (error.response) {
+                        const errorData = await error.response.json();
+                        errorMessage = errorData.message || errorData.detail || '未知错误';
+                    }
+                } catch (e) {
+                    errorMessage = error.message || '网络错误';
+                }
+                showMessage('注册失败: ' + errorMessage, 'error');
+            }
+        });
+        
+        function showMessage(message, type) {
+            const msgDiv = document.getElementById('authMessage');
+            msgDiv.textContent = message;
+            msgDiv.className = `auth-message ${type}`;
+            msgDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
+

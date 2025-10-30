@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工作空间 - AI Survey Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .workspace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .create-survey-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .create-survey-btn:hover {
+            transform: translateY(-2px);
+        }
+        .surveys-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .survey-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .survey-card:hover {
+            border-color: #667eea;
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+        }
+        .survey-card h3 {
+            margin: 0 0 12px 0;
+            color: var(--text-primary);
+            font-size: 18px;
+        }
+        .survey-meta {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+        .survey-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .action-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .action-btn:hover {
+            background: var(--bg-secondary);
+            border-color: #667eea;
+        }
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+        .delete-btn:hover {
+            background: #c82333;
+            border-color: #c82333;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+        .empty-state svg {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>AI Survey Assistant</h1>
+            <p>智能问卷生成与分析工具</p>
+        </header>
+        
+        <main class="main-content">
+            <!-- 工作空间头部 -->
+            <div class="workspace-header">
+                <div class="user-info">
+                    <h2>欢迎回来，<span id="usernameDisplay"></span>！</h2>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button class="create-survey-btn" id="createSurveyBtn">
+                        + 创建新问卷
+                    </button>
+                    <button class="btn-secondary" id="logoutBtn">登出</button>
+                </div>
+            </div>
+            
+            <!-- 问卷列表 -->
+            <div class="surveys-section">
+                <h3>我的问卷</h3>
+                <div id="surveysContainer" class="surveys-grid">
+                    <!-- 问卷卡片将动态加载 -->
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        let currentSession = null;
+        let surveys = [];
+        
+        // 检查登录状态
+        window.addEventListener('DOMContentLoaded', function() {
+            // 优先从localStorage获取会话信息（持久化登录）
+            const sessionId = localStorage.getItem('session_id');
+            const username = localStorage.getItem('username');
+            
+            // 如果没有会话信息，跳转到登录页
+            if (!sessionId || !username) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            // 验证会话是否仍然有效
+            verifySession(sessionId, username);
+        });
+        
+        // 验证会话有效性
+        async function verifySession(sessionId, username) {
+            try {
+                const response = await fetch(`/api/user/info?session_id=${sessionId}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    // 会话无效，清除本地存储并跳转到登录页
+                    localStorage.removeItem('session_id');
+                    localStorage.removeItem('username');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                
+                // 会话有效，继续加载页面
+                currentSession = sessionId;
+                document.getElementById('usernameDisplay').textContent = username;
+                loadSurveys();
+                
+            } catch (error) {
+                console.error('验证会话失败:', error);
+                // 网络错误时也跳转到登录页
+                localStorage.removeItem('session_id');
+                localStorage.removeItem('username');
+                window.location.href = '/login.html';
+            }
+        }
+        
+        // 加载问卷列表
+        async function loadSurveys() {
+            try {
+                const response = await fetch(`/api/user/surveys?session_id=${currentSession}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    surveys = data.surveys;
+                    renderSurveys();
+                } else {
+                    console.error('加载问卷失败');
+                }
+            } catch (error) {
+                console.error('加载问卷错误:', error);
+            }
+        }
+        
+        // 渲染问卷列表
+        function renderSurveys() {
+            const container = document.getElementById('surveysContainer');
+            
+            if (surveys.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                            <rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="4 4"/>
+                            <line x1="12" y1="4" x2="12" y2="20"/>
+                            <line x1="4" y1="12" x2="20" y2="12"/>
+                        </svg>
+                        <h3>还没有问卷</h3>
+                        <p>点击"创建新问卷"开始生成您的第一份问卷</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = surveys.map(survey => `
+                <div class="survey-card">
+                    <h3>${escapeHtml(survey.survey_title)}</h3>
+                    <div class="survey-meta">
+                        <span>创建时间: ${formatDate(survey.created_at)}</span>
+                        <span>回答数: ${survey.response_count}</span>
+                    </div>
+                    <div class="survey-actions">
+                        <button class="action-btn" onclick="viewSurvey('${survey.survey_id}')">👁️ 查看</button>
+                        <button class="action-btn" onclick="analyzeSurvey('${survey.survey_id}')">📊 分析</button>
+                        <button class="action-btn" onclick="shareSurvey('${survey.survey_id}')">🔗 分享</button>
+                        <button class="action-btn delete-btn" onclick="deleteSurvey('${survey.survey_id}', '${survey.survey_title}')">🗑️ 删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 查看问卷
+        function viewSurvey(surveyId) {
+            window.location.href = `/survey/${surveyId}`;
+        }
+        
+        // 分析问卷
+        async function analyzeSurvey(surveyId) {
+            window.location.href = `/survey/${surveyId}?action=analyze`;
+        }
+        
+        // 分享问卷
+        function shareSurvey(surveyId) {
+            const url = `${window.location.origin}/fill/${surveyId}`;
+            navigator.clipboard.writeText(url);
+            alert('分享链接已复制到剪贴板！');
+        }
+        
+        // 删除问卷
+        async function deleteSurvey(surveyId, surveyTitle) {
+            if (!confirm(`确定要删除问卷"${surveyTitle}"吗？\n\n此操作将永久删除问卷及其所有回答数据，无法恢复！`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/user/surveys/${surveyId}?session_id=${currentSession}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('问卷删除成功！');
+                    // 重新加载问卷列表
+                    loadSurveys();
+                } else {
+                    alert('删除失败: ' + (data.message || '未知错误'));
+                }
+            } catch (error) {
+                console.error('删除问卷错误:', error);
+                alert('删除失败: 网络错误');
+            }
+        }
+        
+        // 创建新问卷
+        document.getElementById('createSurveyBtn').addEventListener('click', function() {
+            // 确保会话信息传递到主页
+            const sessionId = currentSession || localStorage.getItem('session_id');
+            const username = localStorage.getItem('username');
+            
+            if (sessionId && username) {
+                // 将会话信息保存到localStorage，确保主页能访问
+                localStorage.setItem('session_id', sessionId);
+                localStorage.setItem('username', username);
+                window.location.href = '/';
+            } else {
+                // 如果没有会话信息，跳转到登录页
+                window.location.href = '/login.html';
+            }
+        });
+        
+        // 登出
+        document.getElementById('logoutBtn').addEventListener('click', async function() {
+            try {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: currentSession })
+                });
+            } catch (e) {
+                console.error('登出失败:', e);
+            }
+            
+            localStorage.removeItem('session_id');
+            localStorage.removeItem('username');
+            window.location.href = '/login.html';
+        });
+        
+        // 辅助函数
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return '未知';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('zh-CN');
+        }
+    </script>
+</body>
+</html>
+
