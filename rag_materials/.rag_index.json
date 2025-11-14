@@ -1,0 +1,63 @@
+{
+  "小众及垂直领域问卷示例语料库.pdf": {
+    "hash": "54d6c04285db052be9a0d0b5852da10d",
+    "size": 181492,
+    "modified": 1761890848.7655756,
+    "processed_at": "2025-10-31T14:20:18.075199"
+  },
+  "真实感问卷示例语料库（增强版）.pdf": {
+    "hash": "371e7a1ca28f4d24c43dfc888780d831",
+    "size": 167265,
+    "modified": 1761890687.7846746,
+    "processed_at": "2025-10-31T14:20:19.026922"
+  },
+  "真实问卷示例语料库.pdf": {
+    "hash": "e2e8c8b19894f01d894f1bfcab126df0",
+    "size": 157870,
+    "modified": 1761890449.6631863,
+    "processed_at": "2025-10-31T14:20:19.924411"
+  },
+  "面向AI问卷生成的RAG语料库.pdf": {
+    "hash": "bee0feef3033517d6148a1727a60bee2",
+    "size": 182104,
+    "modified": 1761890284.0684204,
+    "processed_at": "2025-10-31T14:20:21.415277"
+  },
+  "_last_updated": "2025-11-14T10:56:06.532535",
+  "关键场景问卷示例语料库.pdf": {
+    "hash": "f7da067b15f3ec115e01f53b34f75082",
+    "size": 175610,
+    "modified": 1761900827.433667,
+    "processed_at": "2025-10-31T16:53:49.205585"
+  },
+  "rag_materials_关键场景问卷示例语料库.pdf": {
+    "hash": "f7da067b15f3ec115e01f53b34f75082",
+    "size": 175610,
+    "modified": 1763088958.5548599,
+    "processed_at": "2025-11-14T10:56:00.816596"
+  },
+  "rag_materials_小众及垂直领域问卷示例语料库.pdf": {
+    "hash": "54d6c04285db052be9a0d0b5852da10d",
+    "size": 181492,
+    "modified": 1763088960.8407514,
+    "processed_at": "2025-11-14T10:56:02.289646"
+  },
+  "rag_materials_真实感问卷示例语料库（增强版）.pdf": {
+    "hash": "371e7a1ca28f4d24c43dfc888780d831",
+    "size": 167265,
+    "modified": 1763088962.318452,
+    "processed_at": "2025-11-14T10:56:03.679489"
+  },
+  "rag_materials_真实问卷示例语料库.pdf": {
+    "hash": "e2e8c8b19894f01d894f1bfcab126df0",
+    "size": 157870,
+    "modified": 1763088963.7028599,
+    "processed_at": "2025-11-14T10:56:05.020812"
+  },
+  "rag_materials_面向AI问卷生成的RAG语料库.pdf": {
+    "hash": "bee0feef3033517d6148a1727a60bee2",
+    "size": 182104,
+    "modified": 1763088965.0433583,
+    "processed_at": "2025-11-14T10:56:06.532525"
+  }
+}

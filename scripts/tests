@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+RAG功能测试脚本
+
+测试向量数据库的检索功能是否正常工作
+运行: python test_rag.py
+"""
+
+import os
+import sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+# 添加项目根目录到路径
+project_root = Path(__file__).parent
+sys.path.insert(0, str(project_root))
+
+# Windows终端编码修复
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except:
+        pass
+
+from app.core.vector_store import SurveyVectorStore
+
+# 加载环境变量
+load_dotenv()
+
+def test_rag_retrieval():
+    """测试RAG检索功能"""
+    print("=" * 70)
+    print("RAG 功能测试")
+    print("=" * 70)
+    
+    # 检查API Key
+    if not os.getenv("DASHSCOPE_API_KEY"):
+        print("\n[错误] DASHSCOPE_API_KEY 未设置")
+        return False
+    
+    # 初始化向量存储
+    print("\n[初始化] 加载向量数据库...")
+    try:
+        vector_store = SurveyVectorStore(
+            persist_directory="./data/chroma_db",
+            collection_name="exemplary_surveys"
+        )
+        vector_store.create_vector_store()
+        print("[成功] 向量数据库加载成功")
+    except Exception as e:
+        print(f"[失败] 向量数据库加载失败: {e}")
+        print("请先运行 python update_rag_materials.py 来构建向量数据库")
+        return False
+    
+    # 显示统计信息
+    print("\n[统计] 向量数据库信息:")
+    stats = vector_store.get_stats()
+    for key, value in stats.items():
+        print(f"  {key}: {value}")
+    
+    if stats.get("status") != "已初始化":
+        print("\n[失败] 向量数据库未正确初始化")
+        return False
+    
+    # 测试检索
+    print("\n[测试] 开始测试检索功能...\n")
+    
+    test_queries = [
+        "用户满意度调查",
+        "产品体验问卷",
+        "员工工作满意度",
+        "客户需求调研",
+        "市场调研问卷"
+    ]
+    
+    all_passed = True
+    
+    for i, query in enumerate(test_queries, 1):
+        print(f"测试 {i}: 查询 '{query}'")
+        try:
+            # 执行相似度搜索
+            results = vector_store.similarity_search(query, k=3)
+            
+            if results and len(results) > 0:
+                print(f"  [成功] 找到 {len(results)} 个相关文档")
+                # 显示第一个结果的前200个字符
+                if results[0].page_content:
+                    preview = results[0].page_content[:200].replace('\n', ' ')
+                    print(f"  [预览] {preview}...")
+            else:
+                print(f"  [警告] 未找到相关文档")
+                all_passed = False
+            
+        except Exception as e:
+            print(f"  [失败] 检索出错: {e}")
+            all_passed = False
+        
+        print()
+    
+    # 测试带分数的检索
+    print("[测试] 测试带相似度分数的检索...")
+    try:
+        query = "用户满意度调查"
+        results_with_scores = vector_store.similarity_search_with_score(query, k=3)
+        
+        if results_with_scores and len(results_with_scores) > 0:
+            print(f"  [成功] 找到 {len(results_with_scores)} 个相关文档（带分数）")
+            for idx, (doc, score) in enumerate(results_with_scores, 1):
+                print(f"    结果 {idx}: 相似度分数 = {score:.4f}")
+        else:
+            print(f"  [警告] 未找到相关文档")
+            all_passed = False
+    except Exception as e:
+        print(f"  [失败] 检索出错: {e}")
+        all_passed = False
+    
+    # 总结
+    print("\n" + "=" * 70)
+    if all_passed:
+        print("[成功] RAG功能测试通过！")
+        print("\n向量数据库已准备就绪，可以在问卷生成中使用RAG功能。")
+    else:
+        print("[警告] 部分测试未通过，但向量数据库已加载")
+    print("=" * 70)
+    
+    return all_passed
+
+
+if __name__ == "__main__":
+    try:
+        success = test_rag_retrieval()
+        sys.exit(0 if success else 1)
+    except KeyboardInterrupt:
+        print("\n\n[取消] 测试已取消")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n[错误] 测试失败: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+

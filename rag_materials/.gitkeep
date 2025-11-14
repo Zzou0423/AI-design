@@ -1,0 +1,4 @@
+# RAG 语料文件夹
+# 将您的问卷样例资料（PDF文件）放在此文件夹中
+# 运行 python update_rag_materials.py 来更新向量数据库
+
